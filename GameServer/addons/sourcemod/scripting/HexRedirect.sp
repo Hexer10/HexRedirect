@@ -5,7 +5,7 @@
 #pragma newdecls required
 
 #define PLUGIN_NAME           "HexRedirect"
-#define PLUGIN_VERSION        "1.1"
+#define PLUGIN_VERSION        "<TAG>"
 
 Database g_DB;
 StringMap g_cmdMap;
@@ -67,11 +67,9 @@ public void Connect_CallBack(Database db, const char[] error, any data)
 		SetFailState("Connection to databse failed: %s", error);
 	
 	db.Query(Query_Null, "CREATE TABLE IF NOT EXISTS redirects ( \
-			token varchar(64) NOT NULL, \
+			token varchar(64) NOT NULL UNIQUE, \
 			url longtext NOT NULL, \
 			time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP \
-			constraint redirects_token_uindex \
-			unique (token) \
 			)");
 	
 	g_DB = db;
