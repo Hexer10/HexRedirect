@@ -1,0 +1,36 @@
+addons:
+  apt:
+    packages:
+    - lib32z1
+    - lib32stdc++6
+
+language: c
+
+sudo: false
+
+env:
+  - VERSION=1.9
+  - VERSION=1.10
+
+matrix:
+  allow_failures:
+    - env: VERSION=1.10
+  
+script:
+- 'if [[ $TRAVIS_TAG != "" ]]; then bash ci/build.sh $VERSION $TRAVIS_TAG; else bash ci/test.sh $VERSION; fi'
+
+
+notifications:
+  email: false
+
+deploy:
+  provider: releases
+  api_key:
+    secure: bRMUz3U8mS2WQQXOnKzya0hpQtW/EnZIFXO/IgihRQMhvYXzusp//h7NUHVFdN22+m5gHoI9A9394TsMFl/fT4SKp7gWAGVXHPV2eqQNGyuKrRNmVzLkuiR3Oi5Q0/+n1ldDYt5t8NUHhIR0HOsw+NyHei6H+Q3TxT90hevEUKnmZwCqP8CetYnLyZaR8t5Y5Ucz5tNFQyRfyM3tnudDtNENetqjreyJHpQq9TcxihEMaEqQ1tS/hIiaC6IQ1QLeAau8Gw0W+9aY2HeceuI9lkV7i4yW1UfTwMkN6DDsElvkBliqxCvCZX0P6/uxGswwtGc2bHyqNbiSveFb2h9/x78W07gRmsUTbT2jurHRiQ5GWfDcaCBROMFzyrzs6gv+NRaODrqL+c94+q114sj72SfdMGBDaJ7FZVHs/G/eq/kp7eZALU90GmBUgsQOWGMzPSUn64xRF7X84TwSZfY5d6rgf4oCMDieWkVGVAULqGSmdiPzkW3InPrbLm/hgbZCBlj4fH+vKAlPgMtH5j9MaRBnK0eLp/RDMUvHXsuxaRkj+GfuJwMgP/QydahcfyQSmiF5GezqgHLf0I9cmtbTSRt+0yWHa+9oAspEoRFqZxxdj+qCFRCc8XJxWmjPsTT1Q2NjUs2d03lPVNcng8AR3GfEOzWntFoK78JlEIpABbU=
+  file: HexRedirect.zip
+  skip_cleanup: true
+  on:
+    branch: master
+    tags: true
+    repo: Hexer10/HexRedirect
+    condition: $VERSION = 1.9
