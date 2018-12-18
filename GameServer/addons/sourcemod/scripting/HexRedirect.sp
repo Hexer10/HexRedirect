@@ -1,5 +1,6 @@
 #include <sourcemod>
 #include <sdktools>
+#include <SteamWorks>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -7,7 +8,6 @@
 #define PLUGIN_NAME           "HexRedirect"
 #define PLUGIN_VERSION        "<TAG>"
 
-Database g_DB;
 StringMap g_cmdMap;
 
 ConVar gc_sMethod;
@@ -28,7 +28,6 @@ public void OnPluginStart()
 	gc_sMethod = CreateConVar("sm_redirect_method", "ip", "Redirect method, either 'steam' or 'ip', must me the same as the webscript");
 	AutoExecConfig();
 	
-	Database.Connect(Connect_CallBack, "hexredirect");
 	g_cmdMap = new StringMap();
 	ParseConfig();
 	
@@ -60,24 +59,6 @@ public Action Cmd_Reload(int client, int args)
 	return Plugin_Handled;
 }
 
-//SQL Callbacks
-public void Connect_CallBack(Database db, const char[] error, any data)
-{
-	if (db == null)
-		SetFailState("Connection to databse failed: %s", error);
-	
-	db.Query(Query_Null, "CREATE TABLE IF NOT EXISTS redirects ( \
-			token varchar(64) NOT NULL UNIQUE, \
-			url longtext NOT NULL, \
-			time timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP \
-			)");
-	
-	g_DB = db;
-	
-}
-
-
-
 public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
 {
 	g_cmdMap.SetString(key, value);
@@ -87,7 +68,7 @@ public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value,
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	char sValue[64];
-	PrintToConsole(client, sArgs);
+	//PrintToConsole(client, sArgs);
 	if (!g_cmdMap.GetString(sArgs, sValue, sizeof sValue))
 		return Plugin_Continue;
 	
@@ -111,28 +92,33 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
+	int userid = GetClientUserId(client);
 	
-	char sQuery[512];
-	g_DB.Format(sQuery, sizeof sQuery, "INSERT INTO redirects (token, url) \
-			VALUES ('%s', '%s') \
-			ON DUPLICATE KEY UPDATE \
-			token = '%s', \
-			url = '%s', \
-			time = CURRENT_TIMESTAMP", sToken, sValue, sToken, sValue);
+	char sURL[512];
+	Format(sURL, sizeof(sURL), "https://WEBSITE/redirect.php?token=%s&url=%s", sToken, sValue);
+	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, sURL);
 	
-	g_DB.Query(Query_Null, sQuery);
+	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, userid) || !SteamWorks_SendHTTPRequest(hRequest))
+	{
+		CloseHandle(hRequest);
+	}
+	
 	PrintToChat(client, "[SM] Redirecting to %s, just click on \"server website\" in the bottom left of the scoreboard.", sValue);
 	return Plugin_Stop;
 }
 
-
-public void Query_Null(Database db, DBResultSet results, const char[] error, any data)
+public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, int userid)
 {
-	if (results == null)
-	{
-		LogError("Query failed: %s error", error);
-		return;
-	}
+    if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
+    {
+		int client = GetClientOfUserId(userid);
+		if(IsClientInGame(client))
+		{
+			PrintToChat(client, "Error setting url");
+		}
+    }
+
+    CloseHandle(hRequest);
 }
 
 //Functions
