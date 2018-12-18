@@ -87,6 +87,19 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
+	char sAuth[64];
+	if (GetClientAuthId(client, AuthId_Steam2, sAuth, sizeof sAuth) && StrContains(sValue, "{STEAMID}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{STEAMID}", sAuth, false);
+	}
+	if (GetClientAuthId(client, AuthId_SteamID64, sAuth, sizeof sAuth) && StrContains(sValue, "{STEAMID64}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{STEAMID64}", sAuth, false);
+	}
+	if (GetClientIP(client, sValue, sizeof sValue) && StrContains(sValue, "{IP}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{IP}", sValue);
+	}
 	
 	char sQuery[512];
 	g_DB.Format(sQuery, sizeof sQuery, "INSERT INTO redirects (token, url) \
