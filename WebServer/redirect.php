@@ -17,8 +17,26 @@ $homepage = 'https://www.google.com/';
 //Timer after an URL is considered as expired.
 $expire = 60;
 
-/**** DON'T EDIT DOWN HERE ****/
+//Set to 1 to display errors
+define('DEV_MODE', 0);
 
+if (DEV_MODE === 1) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+?>
+<html>
+<head>
+    <style>
+        body {
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+<?php
+
+/**** DON'T EDIT DOWN HERE ****/
 
 $db = new mysqli($host, $username, $password, $dbname, $port);
 
@@ -112,7 +130,7 @@ if ($method === 'ip') {
                 $fullurl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
                 $url = strtok($fullurl, '?');
 
-                echo("Location: {$url}");
+                header("Location: $url");
                 exit;
 
             } else {
@@ -123,3 +141,6 @@ if ($method === 'ip') {
         }
     }
 }
+?>
+</body>
+</html>
