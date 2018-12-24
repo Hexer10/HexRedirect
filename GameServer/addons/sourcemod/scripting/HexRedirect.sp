@@ -133,7 +133,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		ReplaceString(sValue, sizeof sValue, "{IP}", sValue);
 	}
 	
-  Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
+	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "token", sToken);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "url", sValue);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
