@@ -59,12 +59,8 @@ public Action Cmd_Reload(int client, int args)
 	return Plugin_Handled;
 }
 
-public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
-{
-	g_cmdMap.SetString(key, value);
-	return SMCParse_Continue;
-}
 
+//Events
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	char sValue[64];
@@ -92,33 +88,55 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
-	int userid = GetClientUserId(client);
+	DataPack data = new DataPack();
+	data.WriteCell(GetClientUserId(client));
+	data.WriteString(sValue);
 	
 	char sURL[512];
 	Format(sURL, sizeof(sURL), "https://WEBSITE/redirect.php?token=%s&url=%s", sToken, sValue);
 	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, sURL);
 	
-	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, userid) || !SteamWorks_SendHTTPRequest(hRequest))
+	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, data) || !SteamWorks_SendHTTPRequest(hRequest))
 	{
-		CloseHandle(hRequest);
+		delete hRequest;
 	}
 	
-	PrintToChat(client, "[SM] Redirecting to %s, just click on \"server website\" in the bottom left of the scoreboard.", sValue);
 	return Plugin_Stop;
 }
 
-public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, int userid)
+//SMC Callbacks
+public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
 {
+	g_cmdMap.SetString(key, value);
+	return SMCParse_Continue;
+}
+
+
+//HTTP Request callbacks
+public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, DataPack data)
+{
+	data.Reset();
+	int client = GetClientOfUserId(data.ReadCell());
+	if(!client)
+	{
+		delete data;
+		return;
+	}
+	
+	char sURL[64];
+	data.ReadString(sURL, sizeof sURL);
+	
     if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
     {
-		int client = GetClientOfUserId(userid);
-		if(IsClientInGame(client))
-		{
-			PrintToChat(client, "Error setting url");
-		}
+		PrintToChat(client, "[SM] Redirect failed to %s! Status code: %s", sURL, eStatusCode);
     }
-
-    CloseHandle(hRequest);
+	else
+	{
+		PrintToChat(client, "[SM] Redirecting to %s, just click on \"server website\" in the bottom left of the scoreboard.", sURL);
+    }
+    
+    delete data;
+    delete hRequest;
 }
 
 //Functions
