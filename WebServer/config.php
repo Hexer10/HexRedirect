@@ -4,6 +4,10 @@
 //Must be the same as in the gameserver.
 $method = 'ip';
 
+//In order to perform POST requests the client must server this value as auth parameter.
+$auth = 'myrandomstring';
+
+//Database information
 $host = 'localhost';
 $username = 'root';
 $password = 'mypsw';
@@ -15,5 +19,3 @@ $homepage = 'https://www.google.com/';
 
 //Timer after an URL is considered as expired.
 $expire = 60;
-
-?>
