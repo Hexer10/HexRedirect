@@ -11,6 +11,12 @@
 StringMap g_cmdMap;
 
 ConVar gc_sMethod;
+ConVar gc_sWebSite;
+ConVar gc_sAuth;
+
+char g_sWebSite[64];
+char g_sAuth[128];
+
 int g_iMethod;
 
 public Plugin myinfo =
@@ -26,6 +32,8 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
 	gc_sMethod = CreateConVar("sm_redirect_method", "ip", "Redirect method, either 'steam' or 'ip', must me the same as the webscript");
+	gc_sWebSite = CreateConVar("sm_redirect_website", "https://www.example.com/redirect.php", "FULL URL to your PHP Script");
+	gc_sAuth = CreateConVar("sm_redirect_authtoken", "myrandomstring", "A string that must match the one set in the php script in order to perform POST requests");
 	AutoExecConfig();
 	
 	g_cmdMap = new StringMap();
@@ -40,13 +48,28 @@ public void OnConfigsExecuted()
 	char sMethod[64];
 	gc_sMethod.GetString(sMethod, sizeof sMethod);
 	GetMethod(sMethod);
+	
+	gc_sWebSite.GetString(g_sWebSite, sizeof g_sWebSite);
+	gc_sAuth.GetString(g_sAuth, sizeof g_sAuth);
 }
+
 
 
 //Hooks
 public void Hook_CvarChange(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	GetMethod(newValue);
+	if (convar == gc_sMethod)
+	{
+		GetMethod(newValue);
+	}
+	else if (convar == gc_sWebSite)
+	{
+		strcopy(g_sWebSite, sizeof g_sWebSite, newValue);
+	}
+	else if (convar == gc_sAuth)
+	{
+		strcopy(g_sAuth, sizeof g_sAuth, newValue);
+	}
 }
 
 //Commands
@@ -92,9 +115,10 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	data.WriteCell(GetClientUserId(client));
 	data.WriteString(sValue);
 	
-	char sURL[512];
-	Format(sURL, sizeof(sURL), "https://WEBSITE/redirect.php?token=%s&url=%s", sToken, sValue);
-	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodGET, sURL);
+	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
+	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "token", sToken);
+	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "url", sValue);
+	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
 	
 	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, data) || !SteamWorks_SendHTTPRequest(hRequest))
 	{
@@ -128,7 +152,7 @@ public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSucc
 	
 	if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
 	{
-		PrintToChat(client, "[SM] Redirect failed to %s! Status code: %s", sURL, eStatusCode);
+		PrintToChat(client, "[SM] Redirect failed to %s! Status code: %i", sURL, eStatusCode);
 	}
 	else
 	{
