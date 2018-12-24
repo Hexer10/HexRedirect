@@ -29,6 +29,16 @@ public Plugin myinfo =
 };
 
 //Startup
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	//Plugin library
+	RegPluginLibrary("HexRedirect");
+	
+	//Natives
+	CreateNative("HR_GetURL", Native_GetURL);
+	CreateNative("HR_SetURL", Native_SetURL);
+}
+
 public void OnPluginStart()
 {
 	gc_sMethod = CreateConVar("sm_redirect_method", "ip", "Redirect method, either 'steam' or 'ip', must me the same as the webscript");
@@ -53,8 +63,6 @@ public void OnConfigsExecuted()
 	gc_sAuth.GetString(g_sAuth, sizeof g_sAuth);
 }
 
-
-
 //Hooks
 public void Hook_CvarChange(ConVar convar, const char[] oldValue, const char[] newValue)
 {
@@ -72,6 +80,7 @@ public void Hook_CvarChange(ConVar convar, const char[] oldValue, const char[] n
 	}
 }
 
+
 //Commands
 public Action Cmd_Reload(int client, int args)
 {
@@ -87,7 +96,6 @@ public Action Cmd_Reload(int client, int args)
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	char sValue[64];
-	//PrintToConsole(client, sArgs);
 	if (!g_cmdMap.GetString(sArgs, sValue, sizeof sValue))
 		return Plugin_Continue;
 	
@@ -114,12 +122,26 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	DataPack data = new DataPack();
 	data.WriteCell(GetClientUserId(client));
 	data.WriteString(sValue);
+
+	char sAuth[64];
+	if (GetClientAuthId(client, AuthId_Steam2, sAuth, sizeof sAuth) && StrContains(sValue, "{STEAMID}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{STEAMID}", sAuth, false);
+	}
+	if (GetClientAuthId(client, AuthId_SteamID64, sAuth, sizeof sAuth) && StrContains(sValue, "{STEAMID64}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{STEAMID64}", sAuth, false);
+	}
+	if (GetClientIP(client, sValue, sizeof sValue) && StrContains(sValue, "{IP}", false) != -1)
+	{
+		ReplaceString(sValue, sizeof sValue, "{IP}", sValue);
+	}
 	
-	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
+  Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "token", sToken);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "url", sValue);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
-	
+  
 	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, data) || !SteamWorks_SendHTTPRequest(hRequest))
 	{
 		delete hRequest;
@@ -127,14 +149,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	return Plugin_Stop;
 }
-
-//SMC Callbacks
-public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
-{
-	g_cmdMap.SetString(key, value);
-	return SMCParse_Continue;
-}
-
 
 //HTTP Request callbacks
 public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, DataPack data)
@@ -161,6 +175,13 @@ public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSucc
 	
 	delete data;
 	delete hRequest;
+}
+
+//Parser callbacks
+public SMCResult OnKeyValue(SMCParser smc, const char[] key, const char[] value, bool key_quotes, bool value_quotes)
+{
+	g_cmdMap.SetString(key, value);
+	return SMCParse_Continue;
 }
 
 //Functions
