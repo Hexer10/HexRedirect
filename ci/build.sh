@@ -27,14 +27,13 @@ if [ -d "addons/sourcemod/plugins" ]; then
 fi
 
 echo "Create clean plugins folder"
-mkdir -p ../build/GameServer/addons/sourcemod/scripting/include
+mkdir -p ../build/GameServer/addons/sourcemod/scripting
 mkdir ../build/GameServer/addons/sourcemod/configs
 mkdir ../build/GameServer/addons/sourcemod/plugins
 
 echo "Move plugins files to their folder"
 
 mv addons/sourcemod/scripting/HexRedirect.sp ../build/GameServer/addons/sourcemod/scripting
-mv addons/sourcemod/scripting/include/HexRedirect.inc ../build/GameServer/addons/sourcemod/scripting/include
 mv addons/sourcemod/scripting/compiled/HexRedirect.smx ../build/GameServer/addons/sourcemod/plugins
 mv addons/sourcemod/configs/hexredirect.cfg ../build/GameServer/addons/sourcemod/configs
 cd ..
