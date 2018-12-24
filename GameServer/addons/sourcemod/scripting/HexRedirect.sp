@@ -126,17 +126,17 @@ public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSucc
 	char sURL[64];
 	data.ReadString(sURL, sizeof sURL);
 	
-    if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
-    {
+	if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
+	{
 		PrintToChat(client, "[SM] Redirect failed to %s! Status code: %s", sURL, eStatusCode);
-    }
+	}
 	else
 	{
 		PrintToChat(client, "[SM] Redirecting to %s, just click on \"server website\" in the bottom left of the scoreboard.", sURL);
-    }
-    
-    delete data;
-    delete hRequest;
+	}
+	
+	delete data;
+	delete hRequest;
 }
 
 //Functions
