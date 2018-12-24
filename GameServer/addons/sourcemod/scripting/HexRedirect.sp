@@ -33,10 +33,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	//Plugin library
 	RegPluginLibrary("HexRedirect");
-	
-	//Natives
-	CreateNative("HR_GetURL", Native_GetURL);
-	CreateNative("HR_SetURL", Native_SetURL);
 }
 
 public void OnPluginStart()
