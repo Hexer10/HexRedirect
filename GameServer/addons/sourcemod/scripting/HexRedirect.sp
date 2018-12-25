@@ -135,7 +135,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	{
 		ReplaceString(sValue, sizeof sValue, "{STEAMID64}", sAuth, false);
 	}
-	if (GetClientIP(client, sValue, sizeof sValue) && StrContains(sValue, "{IP}", false) != -1)
+	if (GetClientIP(client, sAuth, sizeof sAuth) && StrContains(sValue, "{IP}", false) != -1)
 	{
 		ReplaceString(sValue, sizeof sValue, "{IP}", sValue);
 	}
