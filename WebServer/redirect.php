@@ -26,6 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     token varchar(64) NOT NULL UNIQUE,
                     url longtext NOT NULL,
                     time int(10) NOT NULL)');
+
+        if (!$stmt->execute()) {
+            echo 'Failed to create the tables: <br>' .
+                'Errno: ' . $stmt->errno . '<br>' .
+                'Error: ' . $stmt->error . '<br>';
+
+            http_response_code(500);
+            exit;
+        }
+        $stmt->close();
         exit;
     }
 
@@ -47,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $url = $_POST['url'];
 
     if (!$stmt->execute()) {
-        echo 'Failed to perform a query: <br>' .
+        echo 'Failed to insert a row: <br>' .
             'Errno: ' . $stmt->errno . '<br>' .
             'Error: ' . $stmt->error . '<br>';
 
@@ -65,9 +75,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ipAddress = array_pop($explode);
         }
 
-        $sql = "SELECT url FROM redirects WHERE token = '$ipAddress' AND UNIX_TIMESTAMP() < time + $expire";
+        $stmt = $db->prepare('SELECT url FROM redirects WHERE token = ? AND UNIX_TIMESTAMP() < time + ?');
+        $stmt->bind_param('si', $ipAddress, $expire);
+        if (!$stmt->execute()) {
 
-        if (!$result = $db->query($sql)) {
             echo 'Failed to perform a query: <br>' .
                 'Errno: ' . $db->errno . '<br>' .
                 'Error: ' . $db->error . '<br>';
@@ -75,20 +86,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             http_response_code(500);
             exit;
         }
+        $result = $stmt->get_result();
 
         if ($result->num_rows === 0) {
             header("Location: {$homepage}");
             exit;
         }
 
-        $result = $result->fetch_assoc();
-        header("Location: {$result['url']}");
+        $row = $result->fetch_assoc();
+        header("Location: {$row['url']}");
+        $result->close();
+        $stmt->close();
+
     } elseif ($method === 'steam') {
         session_start();
         if (isset($_SESSION['steamid'])) {
-            $sql = "SELECT url FROM redirects WHERE token = {$_SESSION['steamid']} AND UNIX_TIMESTAMP() < time + $expire";
+            $stmt = $db->prepare('SELECT url FROM redirects WHERE token = ? AND UNIX_TIMESTAMP() < time + ?');
+            $stmt->bind_param('si', $_SESSION['steamid'], $expire);
 
-            if (!$result = $db->query($sql)) {
+
+            if (!$stmt->execute()) {
+
                 echo 'Failed to perform a query: <br>' .
                     'Errno: ' . $db->errno . '<br>' .
                     'Error: ' . $db->error . '<br>';
@@ -96,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(500);
                 exit;
             }
+            $result = $stmt->get_result();
 
             if ($result->num_rows === 0) {
                 header("Location: $homepage");
@@ -104,6 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $row = $result->fetch_assoc();
             header("Location: {$row['url']}");
+            $result->close();
+            $stmt->close();
+            
         } else {
             require_once 'openid.php';
             try {
@@ -132,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit('Authentication failed!');
                 }
             } catch (ErrorException $e) {
-                exit("Error occured: $e");
+                exit("Error occurred: $e");
             }
         }
     }
