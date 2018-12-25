@@ -53,14 +53,7 @@ public void OnPluginStart()
 
 public void OnAllPluginsLoaded()
 {
-	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
-	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
-  
-	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, Request_CreateTable) || !SteamWorks_SendHTTPRequest(hRequest))
-	{
-		LogError("Failed to send request!");
-		delete hRequest;
-	}
+	CreateTimer(1.0, Timer_CreateTables);
 }
 
 public void OnConfigsExecuted()
@@ -165,7 +158,7 @@ public void Request_CreateTable(Handle hRequest, bool bFailure, bool bRequestSuc
 {
 	if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
 	{
-		LogError("Failed to create tables! Status code: %i", eStatusCode);
+		LogError("Failed to create table! Status code: %i, URL: %s", eStatusCode, g_sWebSite);
 	}
 	delete hRequest;
 }
@@ -234,5 +227,18 @@ void GetMethod(const char[] method)
 	else
 	{
 		LogError("Invalid method: %s", method);
+	}
+}
+
+//Timers
+public Action Timer_CreateTables(Handle timer)
+{
+	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
+	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
+
+	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, Request_CreateTable) || !SteamWorks_SendHTTPRequest(hRequest))
+	{
+		LogError("Failed to send request!");
+		delete hRequest;
 	}
 }
