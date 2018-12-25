@@ -13,11 +13,23 @@ if ($db->connect_errno) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    //The POST method requires an authentication if it is not given/is wrong the page will return 401.
     if (empty($_POST['auth']) || $_POST['auth'] !== $auth) {
         http_response_code(401);
         exit;
     }
 
+    //If no parameter is given create the tables.
+    if (empty($_POST['token']) && empty($_POST['url'])) {
+        $stmt = $db->prepare('CREATE TABLE IF NOT EXISTS redirects (
+                    token varchar(64) NOT NULL UNIQUE,
+                    url longtext NOT NULL,
+                    time int(10) NOT NULL)');
+        exit;
+    }
+
+    //Return 400 if one of the parameters is missing.
     if (empty($_POST['token']) || empty($_POST['url'])) {
         http_response_code(400);
         exit;
@@ -25,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $stmt = $db->prepare('INSERT INTO redirects (token, url, time)
 				VALUES (?, ?, UNIX_TIMESTAMP())
-			ON DUPLICATE KEY UPDATE
+			    ON DUPLICATE KEY UPDATE
 				token = ?,
 				url = ?,
 				time = UNIX_TIMESTAMP()');
@@ -42,14 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(500);
         exit;
     }
+    $stmt->close();
 
 } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if ($method === 'ip') {
+
         $ipAddress = $_SERVER['REMOTE_ADDR'];
         if (array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
             $explode = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
             $ipAddress = array_pop($explode);
         }
+
         $sql = "SELECT url FROM redirects WHERE token = '$ipAddress' AND UNIX_TIMESTAMP() < time + $expire";
 
         if (!$result = $db->query($sql)) {
@@ -87,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
 
-            $result = $result->fetch_assoc();
-            header("Location: {$result['url']}");
+            $row = $result->fetch_assoc();
+            header("Location: {$row['url']}");
         } else {
             require_once 'openid.php';
             try {
@@ -110,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fullurl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
                     $url = strtok($fullurl, '?');
 
-                    echo("Location: {$url}");
+                    header("Location: $url");
                     exit;
 
                 } else {
