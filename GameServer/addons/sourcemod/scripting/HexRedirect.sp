@@ -47,6 +47,20 @@ public void OnPluginStart()
 	
 	RegAdminCmd("sm_rredirect", Cmd_Reload, ADMFLAG_GENERIC);
 	gc_sMethod.AddChangeHook(Hook_CvarChange);
+	gc_sWebSite.AddChangeHook(Hook_CvarChange);
+	gc_sAuth.AddChangeHook(Hook_CvarChange);
+}
+
+public void OnAllPluginsLoaded()
+{
+	Handle hRequest = SteamWorks_CreateHTTPRequest(k_EHTTPMethodPOST, g_sWebSite);
+	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
+  
+	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, Request_CreateTable) || !SteamWorks_SendHTTPRequest(hRequest))
+	{
+		LogError("Failed to send request!");
+		delete hRequest;
+	}
 }
 
 public void OnConfigsExecuted()
@@ -138,7 +152,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "url", sValue);
 	SteamWorks_SetHTTPRequestGetOrPostParameter(hRequest, "auth", g_sAuth);
   
-	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, OnTransferComplete) || !SteamWorks_SetHTTPRequestContextValue(hRequest, data) || !SteamWorks_SendHTTPRequest(hRequest))
+	if (!hRequest || !SteamWorks_SetHTTPCallbacks(hRequest, Request_SetURL) || !SteamWorks_SetHTTPRequestContextValue(hRequest, data) || !SteamWorks_SendHTTPRequest(hRequest))
 	{
 		delete hRequest;
 	}
@@ -147,7 +161,16 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 }
 
 //HTTP Request callbacks
-public void OnTransferComplete(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, DataPack data)
+public void Request_CreateTable(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode)
+{
+	if (bFailure || !bRequestSuccessful || eStatusCode != k_EHTTPStatusCode200OK)
+	{
+		LogError("Failed to create tables! Status code: %i", eStatusCode);
+	}
+	delete hRequest;
+}
+
+public void Request_SetURL(Handle hRequest, bool bFailure, bool bRequestSuccessful, EHTTPStatusCode eStatusCode, DataPack data)
 {
 	data.Reset();
 	int client = GetClientOfUserId(data.ReadCell());
