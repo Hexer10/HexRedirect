@@ -6,7 +6,7 @@
 5. Set your `motd.txt` to redirect to the php script.
 
 # Configuration
-* The plugin configuration is located in `sourcemod/configs/hextags.cfg`
+* The plugin configuration is located in `sourcemod/configs/hexredirect.cfg`
 * The patter is `"command"  "url"`
 * Make sure to include the full url with the scheme as well(`https` or `http`).
 
